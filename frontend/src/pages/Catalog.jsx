@@ -6,9 +6,16 @@ import imageCompression from 'browser-image-compression';
 export default function Catalog() {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
+  
+  // Lista y filtros
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
   
   // Form state
   const [showModal, setShowModal] = useState(false);
@@ -19,11 +26,19 @@ export default function Catalog() {
   const API_URL = import.meta.env.VITE_API_URL;
 
   const fetchProducts = async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/products`);
+      const query = new URLSearchParams({
+        page,
+        limit: 8,
+        ...(search && { search }),
+        ...(category && { category })
+      });
+      const res = await fetch(`${API_URL}/products?${query}`);
       if (!res.ok) throw new Error('Error al cargar productos');
       const data = await res.json();
       setProducts(data.data || []);
+      setTotalPages(data.meta?.totalPages || 1);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -31,9 +46,18 @@ export default function Catalog() {
     }
   };
 
+  // Debounce YAGNI para la búsqueda sin librerías extra
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    const delay = setTimeout(() => {
+      fetchProducts();
+    }, 200);
+    return () => clearTimeout(delay);
+  }, [page, search, category]);
+
+  // Si cambia la búsqueda, regresar a página 1
+  useEffect(() => {
+    setPage(1);
+  }, [search, category]);
 
   const handleLogout = () => {
     logout();
@@ -85,9 +109,13 @@ export default function Catalog() {
           maxSizeMB: 0.2,
           maxWidthOrHeight: 1280,
           useWebWorker: true,
+          fileType: 'image/webp',
         };
         const compressedFile = await imageCompression(formData.image, options);
-        form.append('image', compressedFile, compressedFile.name);
+        const originalName = compressedFile.name || formData.image.name;
+        const webpName = originalName.replace(/\.[^/.]+$/, "") + ".webp";
+        
+        form.append('image', compressedFile, webpName);
       } else if (!formData.id) {
         throw new Error('La imagen es requerida para nuevos productos');
       }
@@ -122,10 +150,28 @@ export default function Catalog() {
           </button>
         </div>
 
-        <div className="mb-6">
-          <button onClick={() => handleOpenModal()} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow font-medium transition w-full sm:w-auto">
+        {/* Acciones y Filtros */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <button onClick={() => handleOpenModal()} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow font-medium transition w-full md:w-auto whitespace-nowrap">
             + Nuevo Producto
           </button>
+          
+          <div className="flex w-full md:w-auto gap-2">
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre..." 
+              className="border border-gray-300 rounded p-2 flex-grow outline-none focus:ring-2 focus:ring-blue-500"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <input 
+              type="text" 
+              placeholder="Categoría" 
+              className="border border-gray-300 rounded p-2 w-32 outline-none focus:ring-2 focus:ring-blue-500"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            />
+          </div>
         </div>
 
         {error && <div className="bg-red-100 border border-red-200 text-red-700 p-4 rounded mb-6">{error}</div>}
@@ -133,31 +179,54 @@ export default function Catalog() {
         {loading ? (
           <p className="text-center text-gray-500 py-10">Cargando productos...</p>
         ) : products.length === 0 ? (
-          <p className="text-center text-gray-500 py-10">No hay productos en el catálogo. ¡Agrega el primero!</p>
+          <p className="text-center text-gray-500 py-10">No se encontraron productos.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map(p => (
-              <div key={p.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden flex flex-col">
-                {p.imageUrl ? (
-                  <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-cover bg-gray-100" />
-                ) : (
-                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">Sin Imagen</div>
-                )}
-                <div className="p-4 flex-grow flex flex-col">
-                  <div className="flex justify-between items-start gap-2">
-                    <h3 className="font-bold text-lg leading-tight text-gray-900">{p.name}</h3>
-                    <span className="bg-blue-100 text-blue-800 text-[10px] uppercase font-bold px-2 py-1 rounded whitespace-nowrap">{p.category}</span>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map(p => (
+                <div key={p.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden flex flex-col">
+                  {p.imageUrl ? (
+                    <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-cover bg-gray-100" />
+                  ) : (
+                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">Sin Imagen</div>
+                  )}
+                  <div className="p-4 flex-grow flex flex-col">
+                    <div className="flex justify-between items-start gap-2">
+                      <h3 className="font-bold text-lg leading-tight text-gray-900">{p.name}</h3>
+                      <span className="bg-blue-100 text-blue-800 text-[10px] uppercase font-bold px-2 py-1 rounded whitespace-nowrap">{p.category}</span>
+                    </div>
+                    <p className="text-gray-600 text-sm mt-2 line-clamp-2 flex-grow">{p.description}</p>
+                    <p className="text-green-600 font-bold mt-4 text-xl">${p.price}</p>
                   </div>
-                  <p className="text-gray-600 text-sm mt-2 line-clamp-2 flex-grow">{p.description}</p>
-                  <p className="text-green-600 font-bold mt-4 text-xl">${p.price}</p>
+                  <div className="p-3 bg-gray-50 border-t flex justify-end gap-3">
+                    <button onClick={() => handleOpenModal(p)} className="text-blue-600 hover:text-blue-800 text-sm font-medium transition">Editar</button>
+                    <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:text-red-800 text-sm font-medium transition">Eliminar</button>
+                  </div>
                 </div>
-                <div className="p-3 bg-gray-50 border-t flex justify-end gap-3">
-                  <button onClick={() => handleOpenModal(p)} className="text-blue-600 hover:text-blue-800 text-sm font-medium transition">Editar</button>
-                  <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:text-red-800 text-sm font-medium transition">Eliminar</button>
-                </div>
+              ))}
+            </div>
+
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center mt-8 gap-4">
+                <button 
+                  disabled={page <= 1} 
+                  onClick={() => setPage(p => p - 1)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+                >
+                  Anterior
+                </button>
+                <span className="text-gray-600 font-medium">Página {page} de {totalPages}</span>
+                <button 
+                  disabled={page >= totalPages} 
+                  onClick={() => setPage(p => p + 1)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+                >
+                  Siguiente
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
 
         {/* Modal Minimalista (YAGNI) */}
