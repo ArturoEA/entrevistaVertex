@@ -145,7 +145,7 @@ router.put('/:id', authenticateToken, multerUpload, async (req, res) => {
       // Eliminar imagen anterior de Supabase
       if (existingProduct.imageUrl) {
         const urlParts = existingProduct.imageUrl.split('/');
-        const oldFileName = urlParts[urlParts.length - 1];
+        const oldFileName = decodeURIComponent(urlParts[urlParts.length - 1]);
         await supabase.storage.from(BUCKET_NAME).remove([oldFileName]).catch(() => {}); // YAGNI: fire and forget
       }
     }
@@ -175,10 +175,12 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const product = await prisma.product.findUnique({ where: { id: Number(id) } });
     if (!product) return res.status(404).json({ error: 'Producto no encontrado' });
 
-    // Optional YAGNI: Borrar en supabase (comentado si no lo pide estrictamente, pero es buena práctica)
-    const urlParts = product.imageUrl.split('/');
-    const fileName = urlParts[urlParts.length - 1];
-    await supabase.storage.from(BUCKET_NAME).remove([fileName]);
+    // Borrar imagen en supabase (decodificando la URL por si hay espacios)
+    if (product.imageUrl) {
+      const urlParts = product.imageUrl.split('/');
+      const fileName = decodeURIComponent(urlParts[urlParts.length - 1]);
+      await supabase.storage.from(BUCKET_NAME).remove([fileName]);
+    }
 
     await prisma.product.delete({ where: { id: Number(id) } });
     res.json({ message: 'Producto eliminado correctamente' });

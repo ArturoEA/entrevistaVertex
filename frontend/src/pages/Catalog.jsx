@@ -11,6 +11,8 @@ export default function Catalog() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
   
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -31,7 +33,6 @@ export default function Catalog() {
       const res = await fetch(`${API_URL}/products/categories`);
       if (res.ok) {
         const data = await res.json();
-        // Usar Set para garantizar valores únicos reales como solicitó el Tech Lead
         setCategories([...new Set(data)]);
       }
     } catch (err) {}
@@ -92,15 +93,20 @@ export default function Catalog() {
 
   const handleDelete = async (id) => {
     if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
+    setDeletingId(id);
     try {
       const res = await fetch(`${API_URL}/products/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Error al eliminar');
+      setSuccessMsg('Producto eliminado exitosamente');
       fetchProducts();
     } catch (err) {
       alert(err.message);
+    } finally {
+      setDeletingId(null);
+      setTimeout(() => setSuccessMsg(''), 3000);
     }
   };
 
@@ -147,8 +153,10 @@ export default function Catalog() {
         throw new Error(errData.error || 'Error al guardar producto');
       }
 
+      setSuccessMsg(formData.id ? 'Producto editado exitosamente' : 'Producto creado exitosamente');
       setShowModal(false);
       fetchProducts();
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -197,54 +205,58 @@ export default function Catalog() {
         
         {loading ? (
           <p className="text-center text-gray-500 py-10">Cargando productos...</p>
-        ) : products.length === 0 ? (
-          <p className="text-center text-gray-500 py-10">No se encontraron productos.</p>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map(p => (
-                <div key={p.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden flex flex-col">
-                  {p.imageUrl ? (
-                    <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-cover bg-gray-100" />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">Sin Imagen</div>
-                  )}
-                  <div className="p-4 flex-grow flex flex-col">
-                    <div className="flex justify-between items-start gap-2">
-                      <h3 className="font-bold text-lg leading-tight text-gray-900">{p.name}</h3>
-                      <span className="bg-blue-100 text-blue-800 text-[10px] uppercase font-bold px-2 py-1 rounded whitespace-nowrap">{p.category}</span>
+            {products.length === 0 ? (
+              <p className="text-center text-gray-500 py-10">No se encontraron productos.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {products.map(p => (
+                  <div key={p.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden flex flex-col">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-cover bg-gray-100" />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">Sin Imagen</div>
+                    )}
+                    <div className="p-4 flex-grow flex flex-col">
+                      <div className="flex justify-between items-start gap-2">
+                        <h3 className="font-bold text-lg leading-tight text-gray-900">{p.name}</h3>
+                        <span className="bg-blue-100 text-blue-800 text-[10px] uppercase font-bold px-2 py-1 rounded whitespace-nowrap">{p.category}</span>
+                      </div>
+                      <p className="text-gray-600 text-sm mt-2 line-clamp-2 flex-grow">{p.description}</p>
+                      <p className="text-green-600 font-bold mt-4 text-xl">${p.price}</p>
                     </div>
-                    <p className="text-gray-600 text-sm mt-2 line-clamp-2 flex-grow">{p.description}</p>
-                    <p className="text-green-600 font-bold mt-4 text-xl">${p.price}</p>
+                    <div className="p-3 bg-gray-50 border-t flex justify-end gap-3">
+                      <button onClick={() => handleOpenModal(p)} className="text-blue-600 hover:text-blue-800 text-sm font-medium transition disabled:opacity-50" disabled={deletingId === p.id}>Editar</button>
+                      <button onClick={() => handleDelete(p.id)} disabled={deletingId === p.id} className="text-red-600 hover:text-red-800 text-sm font-medium transition flex items-center gap-1 disabled:opacity-50">
+                        {deletingId === p.id ? (
+                          <svg className="animate-spin h-4 w-4 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        ) : 'Eliminar'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="p-3 bg-gray-50 border-t flex justify-end gap-3">
-                    <button onClick={() => handleOpenModal(p)} className="text-blue-600 hover:text-blue-800 text-sm font-medium transition">Editar</button>
-                    <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:text-red-800 text-sm font-medium transition">Eliminar</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Paginación */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center mt-8 gap-4">
-                <button 
-                  disabled={page <= 1} 
-                  onClick={() => setPage(p => p - 1)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
-                >
-                  Anterior
-                </button>
-                <span className="text-gray-600 font-medium">Página {page} de {totalPages}</span>
-                <button 
-                  disabled={page >= totalPages} 
-                  onClick={() => setPage(p => p + 1)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
-                >
-                  Siguiente
-                </button>
+                ))}
               </div>
             )}
+
+            {/* Paginación visible siempre */}
+            <div className="flex justify-center items-center mt-8 gap-4 pb-8">
+              <button 
+                disabled={page <= 1} 
+                onClick={() => setPage(p => p - 1)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-white transition"
+              >
+                Anterior
+              </button>
+              <span className="text-gray-600 font-medium">Página {page} de {Math.max(1, totalPages)}</span>
+              <button 
+                disabled={page >= Math.max(1, totalPages)} 
+                onClick={() => setPage(p => p + 1)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-40 disabled:hover:bg-white transition"
+              >
+                Siguiente
+              </button>
+            </div>
           </>
         )}
 
@@ -294,6 +306,19 @@ export default function Catalog() {
                 </form>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Toast Notification Flotante */}
+        {successMsg && (
+          <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:bottom-6 md:min-w-[300px] bg-gray-900 text-white p-4 rounded-lg shadow-xl flex justify-between items-center z-[60] transition-all transform translate-y-0 opacity-100">
+            <div className="flex items-center gap-3">
+              <div className="bg-green-500 rounded-full p-1">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+              </div>
+              <span className="font-medium text-sm">{successMsg}</span>
+            </div>
+            <button onClick={() => setSuccessMsg('')} className="text-gray-400 hover:text-white ml-4 font-bold text-lg">&times;</button>
           </div>
         )}
       </div>
