@@ -104,11 +104,37 @@ router.get('/', async (req, res) => {
 });
 
 // UPDATE
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, multerUpload, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, price, category } = req.body;
     
+    // Buscar producto actual
+    const existingProduct = await prisma.product.findUnique({ where: { id: Number(id) } });
+    if (!existingProduct) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    let imageUrl = existingProduct.imageUrl;
+
+    // Si viene imagen nueva, subirla y reemplazar
+    if (req.file) {
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${req.file.originalname}`;
+      const { error: uploadError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(fileName, req.file.buffer, { contentType: req.file.mimetype });
+
+      if (uploadError) throw new Error(`Error subiendo nueva imagen: ${uploadError.message}`);
+
+      const { data: publicUrlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+      imageUrl = publicUrlData.publicUrl;
+
+      // Eliminar imagen anterior de Supabase
+      if (existingProduct.imageUrl) {
+        const urlParts = existingProduct.imageUrl.split('/');
+        const oldFileName = urlParts[urlParts.length - 1];
+        await supabase.storage.from(BUCKET_NAME).remove([oldFileName]).catch(() => {}); // YAGNI: fire and forget
+      }
+    }
+
     const product = await prisma.product.update({
       where: { id: Number(id) },
       data: {
@@ -116,6 +142,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         ...(description && { description }),
         ...(price && { price: parseFloat(price) }),
         ...(category && { category }),
+        imageUrl,
       },
     });
 
