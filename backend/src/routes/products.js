@@ -70,6 +70,21 @@ router.post('/', authenticateToken, multerUpload, async (req, res) => {
   }
 });
 
+// READ (Categorías únicas)
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await prisma.product.findMany({
+      select: { category: true },
+      distinct: ['category'],
+    });
+    // YAGNI: devolvemos un array plano de strings
+    res.json(categories.map(c => c.category).filter(Boolean));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al obtener categorías' });
+  }
+});
+
 // READ (Lista paginada)
 router.get('/', async (req, res) => {
   try {
@@ -77,7 +92,7 @@ router.get('/', async (req, res) => {
     
     const where = {};
     if (search) where.name = { contains: search, mode: 'insensitive' };
-    if (category) where.category = category;
+    if (category) where.category = { equals: category, mode: 'insensitive' };
 
     const products = await prisma.product.findMany({
       where,

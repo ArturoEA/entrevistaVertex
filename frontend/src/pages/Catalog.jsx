@@ -16,6 +16,7 @@ export default function Catalog() {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
+  const [categories, setCategories] = useState([]);
   
   // Form state
   const [showModal, setShowModal] = useState(false);
@@ -24,6 +25,21 @@ export default function Catalog() {
   const [formData, setFormData] = useState({ id: null, name: '', description: '', price: '', category: '', image: null });
 
   const API_URL = import.meta.env.VITE_API_URL;
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`${API_URL}/products/categories`);
+      if (res.ok) {
+        const data = await res.json();
+        // Usar Set para garantizar valores únicos reales como solicitó el Tech Lead
+        setCategories([...new Set(data)]);
+      }
+    } catch (err) {}
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -164,13 +180,16 @@ export default function Catalog() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <input 
-              type="text" 
-              placeholder="Categoría" 
-              className="border border-gray-300 rounded p-2 w-32 outline-none focus:ring-2 focus:ring-blue-500"
+            <select 
+              className="border border-gray-300 rounded p-2 w-40 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-            />
+            >
+              <option value="">Todas</option>
+              {categories.map((c, i) => (
+                <option key={i} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
         </div>
 
