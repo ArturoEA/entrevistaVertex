@@ -91,7 +91,11 @@ router.get('/', async (req, res) => {
     const { page = 1, limit = 10, search, category } = req.query;
     
     const where = {};
-    if (search) where.name = { contains: search, mode: 'insensitive' };
+    if (search) {
+      const searchPattern = `%${search}%`;
+      const matching = await prisma.$queryRaw`SELECT id FROM "Product" WHERE unaccent(name) ILIKE unaccent(${searchPattern})`;
+      where.id = { in: matching.map(m => m.id) };
+    }
     if (category) where.category = { equals: category, mode: 'insensitive' };
 
     const products = await prisma.product.findMany({
