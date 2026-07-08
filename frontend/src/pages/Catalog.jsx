@@ -204,7 +204,28 @@ export default function Catalog() {
         {error && <div className="bg-red-100 border border-red-200 text-red-700 p-4 rounded mb-6">{error}</div>}
         
         {loading ? (
-          <p className="text-center text-gray-500 py-10">Cargando productos...</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow overflow-hidden flex flex-col">
+                <div className="w-full h-48 animate-shimmer"></div>
+                <div className="p-4 flex-grow flex flex-col gap-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="h-5 animate-shimmer rounded w-2/3"></div>
+                    <div className="h-4 animate-shimmer rounded w-16"></div>
+                  </div>
+                  <div className="space-y-2 mt-2">
+                    <div className="h-3 animate-shimmer rounded w-full"></div>
+                    <div className="h-3 animate-shimmer rounded w-4/5"></div>
+                  </div>
+                  <div className="h-6 animate-shimmer rounded w-1/3 mt-4"></div>
+                </div>
+                <div className="p-3 bg-gray-50 border-t flex justify-end gap-3">
+                  <div className="h-5 animate-shimmer rounded w-12"></div>
+                  <div className="h-5 animate-shimmer rounded w-16"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <>
             {products.length === 0 ? (
@@ -214,7 +235,7 @@ export default function Catalog() {
                 {products.map(p => (
                   <div key={p.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden flex flex-col">
                     {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="w-full h-48 object-cover bg-gray-100" />
+                      <img src={p.imageUrl} alt={p.name} loading="lazy" className="w-full h-48 object-cover bg-gray-100" />
                     ) : (
                       <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-400">Sin Imagen</div>
                     )}

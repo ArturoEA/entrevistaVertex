@@ -22,4 +22,8 @@ model Product {
   category    String
   imageUrl    String
   createdAt   DateTime @default(now())
+
+  @@index([name])
+  @@index([category])
+  @@index([createdAt])
 }
