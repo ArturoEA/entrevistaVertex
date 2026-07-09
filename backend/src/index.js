@@ -8,7 +8,13 @@ const PORT = process.env.PORT || 3000;
 const authRoutes = require('./routes/auth');
 const productsRoutes = require('./routes/products');
 
-app.use(cors());
+const corsOptions = {
+  origin: 'https://entrevista-vertex.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Rutas
