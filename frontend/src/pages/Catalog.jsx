@@ -198,6 +198,15 @@ export default function Catalog() {
                 <option key={i} value={c}>{c}</option>
               ))}
             </select>
+            {(search || category) && (
+              <button 
+                onClick={() => { setSearch(''); setCategory(''); }}
+                title="Limpiar filtros"
+                className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-3 py-2 rounded transition"
+              >
+                &times;
+              </button>
+            )}
           </div>
         </div>
 
