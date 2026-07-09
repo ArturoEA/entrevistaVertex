@@ -1,0 +1,40 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Establecer la carpeta backend como directorio de trabajo por defecto para todos los scripts
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: ./backend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Ejecutar suite de pruebas aisladas (Jest)
+        run: npm test
+        env:
+          # Variables de entorno falsas para que Jest no falle si alguna librería las requiere
+          PORT: 3000
+          JWT_SECRET: "ci_secret_de_prueba"
+          DATABASE_URL: "postgresql://ci_dummy_db"
+          SUPABASE_URL: "https://ci-dummy.supabase.co"
+          SUPABASE_KEY: "ci_dummy_key"
