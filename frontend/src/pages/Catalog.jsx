@@ -180,33 +180,35 @@ export default function Catalog() {
             + Nuevo Producto
           </button>
           
-          <div className="flex w-full md:w-auto gap-2">
+          <div className="flex flex-col sm:flex-row w-full md:w-auto gap-2">
             <input 
               type="text" 
               placeholder="Buscar por nombre..." 
-              className="border border-gray-300 rounded p-2 flex-grow outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded p-2 w-full sm:flex-grow outline-none focus:ring-2 focus:ring-blue-500"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <select 
-              className="border border-gray-300 rounded p-2 w-40 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="">Todas</option>
-              {categories.map((c, i) => (
-                <option key={i} value={c}>{c}</option>
-              ))}
-            </select>
-            {(search || category) && (
-              <button 
-                onClick={() => { setSearch(''); setCategory(''); }}
-                title="Limpiar filtros"
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-3 py-2 rounded transition"
+            <div className="flex gap-2 w-full sm:w-auto">
+              <select 
+                className="border border-gray-300 rounded p-2 flex-grow sm:w-40 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
               >
-                &times;
-              </button>
-            )}
+                <option value="">Todas</option>
+                {categories.map((c, i) => (
+                  <option key={i} value={c}>{c}</option>
+                ))}
+              </select>
+              {(search || category) && (
+                <button 
+                  onClick={() => { setSearch(''); setCategory(''); }}
+                  title="Limpiar filtros"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-3 py-2 rounded transition flex-shrink-0"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
