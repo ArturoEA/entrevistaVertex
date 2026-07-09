@@ -9,7 +9,11 @@ const authRoutes = require('./routes/auth');
 const productsRoutes = require('./routes/products');
 
 const corsOptions = {
-  origin: 'https://entrevista-vertex.vercel.app',
+  origin: [
+    'https://entrevista-vertex.vercel.app', 
+    'http://localhost', 
+    'http://localhost:5173'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 };
